@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Живий фон: WebGL-шейдер «аврора + світлове кільце + світлова хвиля».
+   Живий фон (світла тема): WebGL-шейдер «перлинний туман + скляне кільце + лінія-хвиля».
    Кожен слайд має data-scene, параметри сцени плавно перетікають між слайдами.
    ========================================================================== */
 (() => {
@@ -42,14 +42,14 @@ void main(){
   float t = uTime;
   vec2 par = uMouse * 0.025;
 
-  vec3 deep = vec3(0.010, 0.022, 0.034);
-  vec3 col  = deep + vec3(0.0, 0.010, 0.016) * (0.5 - uv.y);
+  /* --- світла перлинна база --- */
+  vec3 col = mix(vec3(0.905,0.918,0.926), vec3(0.962,0.966,0.970), smoothstep(-0.55,0.45,uv.y));
 
-  vec3 teal = mix(vec3(0.05,0.40,0.42), vec3(0.06,0.30,0.50), uTint);
-  vec3 aqua = mix(vec3(0.42,0.92,0.82), vec3(0.50,0.80,1.00), uTint);
-  vec3 ink  = vec3(0.02,0.11,0.16);
+  vec3 mint  = mix(vec3(0.60,0.89,0.84), vec3(0.66,0.80,0.96), uTint);
+  vec3 teal  = mix(vec3(0.16,0.58,0.58), vec3(0.20,0.44,0.70), uTint);
+  vec3 pearl = vec3(0.985,0.995,0.995);
 
-  /* --- аврора --- */
+  /* --- аврора: м'який кольоровий туман --- */
   vec2 ap = uv - uAur.xy - par;
   float s = 0.055*t;
   vec2 q = vec2(fbm(ap*1.4 + vec2(s,-s)), fbm(ap*1.4 + vec2(-s*0.8, s) + 5.2));
@@ -57,11 +57,11 @@ void main(){
   float band = ap.y*uAur.z + (n-0.5)*0.55;
   float mask = exp(-band*band*9.0) * exp(-ap.x*ap.x*0.9);
   float veil = exp(-dot(ap,ap)*2.4) * 0.35;
-  vec3 ac = mix(ink, teal, smoothstep(0.25,0.65,n));
-  ac = mix(ac, aqua, smoothstep(0.55,0.88,n)*0.75);
-  col += ac * (mask + veil) * uAur.w;
+  vec3 ac = mix(pearl, mint, smoothstep(0.28,0.62,n));
+  ac = mix(ac, teal, smoothstep(0.58,0.90,n)*0.55);
+  col = mix(col, ac, clamp((mask*0.9 + veil)*uAur.w, 0.0, 1.0)*0.78);
 
-  /* --- кільце / затемнена сфера з контровим світлом --- */
+  /* --- кільце: світла скляна сфера з тонким контуром --- */
   vec2 rp = uv - uRing.xy - par*0.5;
   float r = length(rp);
   float d = r - uRing.z;
@@ -69,15 +69,18 @@ void main(){
   vec2 L = normalize(vec2(sin(t*0.15)*0.5, -1.0));
   float lit = pow(clamp(dot(dir, L)*0.5 + 0.5, 0.0, 1.0), 2.6);
   float inside = smoothstep(0.003, -0.003, d);
-  col = mix(col, col*0.30 + deep*0.5, inside*uRing.w*0.92);
-  float rim    = exp(-abs(d)*520.0) + exp(-abs(d)*110.0)*0.35;
+  float w = uRing.w;
+  col = mix(col, mix(vec3(0.99), mint, 0.10), inside*w*0.70);
   float glowIn = exp(min(d,0.0)*13.0) * inside;
-  float halo   = exp(-max(d,0.0)*8.0) * (1.0 - inside);
-  vec3 rc = mix(teal, aqua, lit);
-  col += uRing.w * ( rc*glowIn*0.32*(0.25+lit) + rc*halo*0.26*(0.15+lit)
-                   + mix(aqua, vec3(1.0), 0.55)*rim*(0.10+1.15*lit) );
+  float halo   = exp(-max(d,0.0)*7.0) * (1.0 - inside);
+  col = mix(col, mint, glowIn*w*0.45*(0.25+lit));
+  col *= 1.0 - halo*w*0.07;
+  float rimLine = exp(-abs(d)*520.0);
+  float rimSoft = exp(-abs(d)*110.0);
+  col = mix(col, teal*0.75, clamp(rimLine*(0.25+0.65*lit), 0.0, 1.0)*w);
+  col = mix(col, teal, rimSoft*w*0.22*(0.3+lit));
 
-  /* --- світлова хвиля --- */
+  /* --- лінія-хвиля --- */
   float x = uv.x;
   float bx = x - uWave.w - sin(t*0.12)*0.08;
   float y = uWave.x + uWave.y*( exp(-bx*bx*7.0) - 0.45*exp(-pow(bx+0.6,2.0)*5.0) - 0.45*exp(-pow(bx-0.65,2.0)*5.0) )
@@ -85,18 +88,21 @@ void main(){
   float wd = uv.y - y;
   float below = smoothstep(0.0, -0.012, wd);
   float fadeX = smoothstep(1.25, 0.35, abs(x));
-  col = mix(col, col*0.35, below*uWave.z*0.75);
-  float line  = exp(-abs(wd)*560.0) + exp(-abs(wd)*130.0)*0.35;
+  float z = uWave.z;
+  col = mix(col, col*0.94 + mint*0.04, below*z);
+  float line  = exp(-abs(wd)*560.0);
+  float lsoft = exp(-abs(wd)*130.0);
   float wglow = exp(-abs(wd)*16.0);
   float under = below*exp(wd*6.0);
-  col += uWave.z*fadeX*( vec3(0.86,1.0,0.97)*line*0.95 + aqua*wglow*0.20 + teal*under*0.30 );
+  col = mix(col, mint, (wglow*0.30 + under*0.35)*z*fadeX);
+  col = mix(col, teal, lsoft*0.25*z*fadeX);
+  col = mix(col, teal*0.7, clamp(line*0.85*z*fadeX, 0.0, 1.0));
 
-  /* --- віньєтка, зерно --- */
+  /* --- легка віньєтка, зерно --- */
   vec2 vv = uv*vec2(0.65,1.0);
-  col *= 1.0 - 0.38*dot(vv,vv);
-  col += (hash(gl_FragCoord.xy + fract(t*0.37)*91.7) - 0.5) * 0.014;
-  col = max(col, 0.0);
-  gl_FragColor = vec4(pow(col, vec3(0.94)), 1.0);
+  col *= 1.0 - 0.10*dot(vv,vv);
+  col += (hash(gl_FragCoord.xy + fract(t*0.37)*91.7) - 0.5) * 0.010;
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }`;
 
   function sh(type, src) {

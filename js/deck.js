@@ -99,15 +99,19 @@
       prev.classList.remove('is-current', 'fwd', 'back');
       prev.classList.add('is-leaving', dir);
       clearTimeout(leaveTimers.get(prev));
+      prev.classList.remove('settled');
       leaveTimers.set(prev, setTimeout(() => prev.classList.remove('is-leaving', 'is-in', 'fwd', 'back'), 1100));
     }
 
     clearTimeout(leaveTimers.get(next));
-    next.classList.remove('is-leaving', 'is-in', 'fwd', 'back');
+    next.classList.remove('is-leaving', 'is-in', 'fwd', 'back', 'settled');
     next.classList.add('is-current');
     void next.offsetWidth; // фіксуємо стартовий стан, щоб переходи запустилися
     next.classList.add('is-in');
     next.querySelectorAll('[data-count]').forEach(countUp);
+    // після появи знімаємо маску слів, щоб діакритика (ї, й) не обрізалась
+    clearTimeout(next._settle);
+    next._settle = setTimeout(() => next.classList.contains('is-current') && next.classList.add('settled'), 2600);
 
     cur = i;
     window.BG && BG.setScene(next.dataset.scene, instant);

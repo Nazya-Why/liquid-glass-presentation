@@ -45,9 +45,10 @@ void main(){
   /* --- світла перлинна база --- */
   vec3 col = mix(vec3(0.905,0.918,0.926), vec3(0.962,0.966,0.970), smoothstep(-0.55,0.45,uv.y));
 
-  vec3 mint  = mix(vec3(0.60,0.89,0.84), vec3(0.66,0.80,0.96), uTint);
-  vec3 teal  = mix(vec3(0.16,0.58,0.58), vec3(0.20,0.44,0.70), uTint);
-  vec3 pearl = vec3(0.985,0.995,0.995);
+  /* відтінки сірого: срібний, сталевий, графіт (uTint трохи охолоджує тон) */
+  vec3 mint  = mix(vec3(0.80,0.815,0.825), vec3(0.78,0.80,0.83), uTint);
+  vec3 teal  = mix(vec3(0.36,0.39,0.41), vec3(0.33,0.37,0.41), uTint);
+  vec3 pearl = vec3(0.995,0.995,0.997);
 
   /* --- аврора: м'який кольоровий туман --- */
   vec2 ap = uv - uAur.xy - par;
@@ -58,7 +59,7 @@ void main(){
   float mask = exp(-band*band*9.0) * exp(-ap.x*ap.x*0.9);
   float veil = exp(-dot(ap,ap)*2.4) * 0.35;
   vec3 ac = mix(pearl, mint, smoothstep(0.28,0.62,n));
-  ac = mix(ac, teal, smoothstep(0.58,0.90,n)*0.55);
+  ac = mix(ac, teal, smoothstep(0.60,0.92,n)*0.40);
   col = mix(col, ac, clamp((mask*0.9 + veil)*uAur.w, 0.0, 1.0)*0.78);
 
   /* --- кільце: світла скляна сфера з тонким контуром --- */
